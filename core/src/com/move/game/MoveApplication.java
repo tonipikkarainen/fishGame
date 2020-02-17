@@ -15,6 +15,7 @@ public class MoveApplication extends Game {
 	
 	public static final int WIDTH = 720;
 	public static final int HEIGTH = 420;
+	public static final int ZOOM = 10;
 	
 //	private int zoom = 2;
 //	private float speed = 30;

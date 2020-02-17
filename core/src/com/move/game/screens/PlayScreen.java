@@ -2,49 +2,49 @@ package com.move.game.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.move.game.MoveApplication;
 import com.move.game.manager.ScreenManager;
 import com.move.game.objects.BackGround;
 import com.move.game.objects.Fish;
-import com.move.game.objects.Medusa;
+import com.move.game.objects.Target;
 
 public class PlayScreen extends AbstractScreen {
 	
 	// objects
 	Texture meri;
 	Fish fish;
-//	Medusa medusa;
-	Array<Medusa> medusas;
+	Array<Target> medusas;
 	Array<BackGround> bgs;
-	
+	BitmapFont font = new BitmapFont();
+	// Camera
 	OrthographicCamera camera;
 	
-	private int zoom = 10;
+	// Game variables
 	private float speed = 2000;
 	float medusa_distance = 2000;
+	int POINTS = 0;
 	
-	float meriX = 0;
-	float meriWidth; 
 	
 	public PlayScreen(ScreenManager sm) {
 		super(sm);
 		
 		camera = new OrthographicCamera();
-		camera.setToOrtho(false, MoveApplication.WIDTH * zoom ,
-				MoveApplication.HEIGTH * zoom  );
+		camera.setToOrtho(false, MoveApplication.WIDTH * MoveApplication.ZOOM ,
+				MoveApplication.HEIGTH * MoveApplication.ZOOM  );
 		meri = new Texture("meri2.jpg");
 		fish = new Fish(new Vector2(0,camera.viewportHeight/2));
 		
-		meriWidth = 2 * camera.viewportWidth;
 		camera.position.x = fish.getPosition().x + 100;
-		meriX = camera.position.x - camera.viewportWidth/2;
 		
-		
-		medusas = new Array<Medusa>();
+		font.getData().setScale(10);
+		font.setColor(Color.WHITE);
+		medusas = new Array<Target>();
 		bgs = new Array<BackGround>();
 		
 		for (int i = 0; i < 2; i++) {
@@ -55,7 +55,7 @@ public class PlayScreen extends AbstractScreen {
 		}
 		//medusa = new Medusa(camera.viewportWidth/2, camera.viewportHeight);
 		for (int i = 0; i < 5; i++) {
-			medusas.add(new Medusa(camera.viewportWidth/2 + i*medusa_distance
+			medusas.add(new Target(camera.viewportWidth/2 + i*medusa_distance
 					, camera.viewportHeight));
 		}
 	}
@@ -74,11 +74,15 @@ public class PlayScreen extends AbstractScreen {
 		fish.moveForward(delta);
 		fish.feelGravity(delta);
 		
+		checkCollisions();
+		 
 		moveMedusas();
 		moveMeri();
 		
 		sm.app.batch.begin();
 		sm.app.batch.setProjectionMatrix(camera.combined);
+		font.draw(sm.app.batch, "Pisteet: "+POINTS, 0,0); //camera.viewportWidth - 100
+				//, camera.viewportHeight - 100 );
 		
 //		sm.app.batch.draw(meri,meriX//camera.position.x - camera.viewportWidth/2
 //					, camera.position.y - camera.viewportHeight / 2
@@ -93,17 +97,32 @@ public class PlayScreen extends AbstractScreen {
 					0,0,backGround.getImg().getWidth(),backGround.getImg().getHeight(),
 					backGround.isFlip,false);
 		}
-		for (Medusa medusa : medusas) {
-			sm.app.batch.draw(medusa.getImg(), medusa.getPosition().x, medusa.getPosition().y,
-					medusa.getSize(),medusa.getSize());
+		
+		for (Target medusa : medusas) {
+			if(!medusa.isCATCHED())
+				sm.app.batch.draw(medusa.getImg(), medusa.getPosition().x, medusa.getPosition().y,
+						medusa.getSize(),medusa.getSize());
 		}
 		
+		font.draw(sm.app.batch, "Pisteet: "+POINTS, camera.position.x,
+				camera.position.y + camera.viewportHeight/2 - 100);
 		
 		sm.app.batch.draw(fish.getFish(), fish.getPosition().x, fish.getPosition().y);
 		sm.app.batch.end();
 	}
 	
 	
+	private void checkCollisions() {
+		
+		for (Target medusa : medusas) {
+			if(medusa.getArea().overlaps(this.fish.getArea()) && !medusa.isCATCHED() ) {
+				POINTS ++;
+				medusa.setCATCHED(true);
+			}
+		}
+		
+	}
+
 	private void moveMeri() {
 		for (BackGround backGround : bgs) {
 			if(backGround.getX()+ backGround.getWidth() 
@@ -119,10 +138,11 @@ public class PlayScreen extends AbstractScreen {
 	}
 
 	private void moveMedusas() {
-		for (Medusa medusa : medusas) {
+		for (Target medusa : medusas) {
 			if (medusa.getPosition().x < camera.position.x - camera.viewportWidth/2) {
 				medusa.setPosition(new Vector2(medusa.getPosition().x + 5 * medusa_distance,
 						(float)Math.random()*camera.viewportHeight));
+				medusa.setCATCHED(false);
 			}
 		}
 		
@@ -168,7 +188,7 @@ public class PlayScreen extends AbstractScreen {
 	public void dispose() {
 		meri.dispose();
 		fish.dispose();
-		for (Medusa medusa : medusas) {
+		for (Target medusa : medusas) {
 			if (medusa != null) {
 				medusa.dispose();
 			}
